@@ -24,14 +24,11 @@ export default class Main extends Component {
     console.disableYellowBox = true;
   }
 
-  loadPokemons = async (page = 0) => {
+  loadPokemons = async (page = 121) => {
     const { results } = await APIPokemon.getPokemons(page);
-    console.log(results)
     let pokemonList = [];
     for(const pokemon of results) {
-      // console.log(pokemon)
       let pokemonResult = await APIPokemon.getPokemonByID(pokemon.name);
-      console.log(pokemonResult)
       pokemonResult = {
         name: pokemonResult.name,
         abilitie: pokemonResult.abilities,
@@ -39,8 +36,6 @@ export default class Main extends Component {
       }
       pokemonList.push(pokemonResult);
     }
-
-    console.log(pokemonList)
 
     this.setState({ pokemonList })
 
@@ -54,7 +49,6 @@ export default class Main extends Component {
         <Image 
           source={{uri: item.image}} 
           style={styles.cardImage} />
-        {console.log(item.image)}
       </View>
     </TouchableWithoutFeedback>
   )

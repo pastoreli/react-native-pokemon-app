@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
-import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
+import { ScrollView, View, Text, FlatList, StyleSheet, Image } from 'react-native';
 
 //API
-import { APIPokemon } from 'app/src/API/routes';
+import { 
+  APIPokemon,
+  APISpecies,
+  APIEvolutions
+} from 'app/src/API/routes';
 
 export default class PokemonDetails extends Component {
   static navigationOptions = {
@@ -10,11 +14,12 @@ export default class PokemonDetails extends Component {
   };
 
   state = {
-    pokemon: {}
+    pokemon: {},
+    evolutions: []
   }
 
   componentDidMount() {
-    console.disableYellowBox = true;
+    // console.disableYellowBox = true;
     this.load();
   }
 
@@ -28,17 +33,68 @@ export default class PokemonDetails extends Component {
       types: pokemon.types,
       image: pokemon.sprites.front_default
     }
-    console.log('name', pokemon);
+
+    const evolutionChain = await this.searchPokemonSpecie(pokemonName);
+    let evolutions = await this.searchPokemonEvolutions(evolutionChain);
+    if(evolutions.evolves_to.length > 0){ 
+      const pokemonProperties = {
+        id: this.getPokemonId(evolutions.species.url),
+        name: evolutions.species.name,
+        next: true
+      }
+      console.log('evolutions: ', evolutions);
+      evolutions = this.mountPokemonEvolutions([ pokemonProperties ], evolutions.evolves_to)
+      console.log('evolutions: ', evolutions);
+    } else evolutions = [];
+
+    // const evolutionList = evolutions.)
     this.setState({ pokemon });
+    this.setState({ evolutions });
   }
 
-  searchPokemon = (name) => {
+  getPokemonId(value) {
+    const breakedString = value.split('/');
+    return breakedString[breakedString.length-2];
+  }
+
+  searchPokemon(name) {
     return APIPokemon.getPokemonByID(name);
   }
+  searchPokemonSpecie(name) {
+    return APISpecies.getSpecieByName(name)
+    .then( result => result.evolution_chain.url);
+  }
+  searchPokemonEvolutions(URL) {
+    return APIEvolutions.getPokemonEvolutions(URL)
+    .then(result => result.chain);
+  }
 
+  mountPokemonEvolutions(evolutionList, evolutions) {
+    const array = [];
+    evolutions.forEach( evolution => {
+      const evollutionWay = [...evolutionList];
+      console.log('make sense', evollutionWay)
+      evollutionWay.push(
+        {
+          id: this.getPokemonId(evolution.species.url),
+          name: evolution.species.name,
+          next: (evolution.evolves_to.length > 0)
+        }
+      )
+      if(evolution.evolves_to.length > 0) {
+        const returnItem = this.mountPokemonEvolutions(evollutionWay, evolution.evolves_to);
+        array.push(...returnItem);
+      } else {
+        array.push(evollutionWay);
+      }
+    })
+    return array;
+  }
+
+  //renders
   renderType = ({ item }) => (
     <View
-    style={styles.listTypeContent}>
+      style={styles.listTypeContent}>
       <View 
         style={styles.listTypeChip}>
         <Text 
@@ -47,23 +103,56 @@ export default class PokemonDetails extends Component {
     </View>
   )
 
+  renderEvolutions = ({ item }) => (
+    <View style={styles.evolutionItem}>
+      <FlatList
+        data={item}
+        keyExtractor={data => data.name}
+        renderItem={this.renderEvolutionWay}
+        numColumns={3}
+        contentContainerStyle={styles.listEvolutions} />
+    </View>
+  )
+  renderEvolutionWay = ({item}) => (
+    <View style={[styles.evolutionWayContainer, item.next? styles.evolutionWayContainerBorder : null ]}>
+      <View style={styles.evolutionWayItem}>
+        <Image 
+            source={{uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${item.id}.png`}} 
+            style={styles.evolutionWayImage} />
+      </View>
+      {/* <View style={styles.evolutionWayItem}>
+        <Text>{ item.next? '->' : '' }</Text>
+      </View> */}
+    </View>
+  )
+
   render() {
     return (
-      <View style={styles.container}>
-        <View
-          style={styles.pokemonImage}>
-          <Image 
-            source={{uri: this.state.pokemon.image}} 
-            style={styles.pokemonImageURI} />
+      <ScrollView style={styles.container}>
+        <View>
+          <View
+            style={styles.pokemonImage}>
+            <Image 
+              source={{uri: this.state.pokemon.image}} 
+              style={styles.pokemonImageURI} />
+          </View>
+          <Text
+            style={styles.pokemonName}>{this.state.pokemon.name}</Text>
+          <FlatList
+            data={this.state.pokemon.types}
+            keyExtractor={item => item.name}
+            renderItem={this.renderType}
+            contentContainerStyle={styles.listType} />
+
+          <View> 
+            <FlatList
+              data={this.state.evolutions}
+              keyExtractor={(item, index) => `item-${index}`}
+              renderItem={this.renderEvolutions}
+              contentContainerStyle={styles.listEvolution} />
+          </View>
         </View>
-        <Text
-          style={styles.pokemonName}>{this.state.pokemon.name}</Text>
-        <FlatList
-          data={this.state.pokemon.types}
-          keyExtractor={item => item.name}
-          renderItem={this.renderType}
-          contentContainerStyle={styles.listType} />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -105,4 +194,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF'
   },
+  evolutionItem: {
+    paddingTop: 10,
+    paddingBottom: 10
+  },
+  evolutionWayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5
+  },
+  evolutionWayContainerBorder: {
+    borderRightWidth: 3,
+    borderRightColor: '#ddd',
+  },  
+  evolutionWayItem: {
+    // flex: 1,
+  },  
+  evolutionWayImage: {
+    width: 100, 
+    height: 100
+  }
 });
