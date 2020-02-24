@@ -12,6 +12,7 @@
     "react": "16.8.6",
     "react-native": "0.60.5",
     "react-native-gesture-handler": "^1.4.1",
+    "react-native-sqlite-storage": "^4.1.0",
     "react-navigation": "~2.18.3"
   },
   "devDependencies": {

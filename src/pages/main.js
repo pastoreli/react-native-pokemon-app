@@ -5,10 +5,14 @@ import {
   FlatList, 
   StyleSheet, 
   Image, 
-  TouchableWithoutFeedback } from 'react-native';
+  TouchableWithoutFeedback,
+  TextInput,
+  ScrollView 
+} from 'react-native';
 
 //API
 import { APIPokemon } from 'app/src/API/routes';
+import { OfflinePokemon } from 'app/src/API/offline';
 
 export default class Main extends Component {
   static navigationOptions = {
@@ -20,6 +24,7 @@ export default class Main extends Component {
   }
 
   componentDidMount() {
+    OfflinePokemon.getRecentPokemons()
     this.loadPokemons();
     console.disableYellowBox = true;
   }
@@ -62,12 +67,25 @@ export default class Main extends Component {
     return (
       <View
         style={styles.container}>
-        <FlatList
-          data={this.state.pokemonList}
-          keyExtractor={item => item.name}
-          renderItem={this.renderPokemons}
-          contentContainerStyle={styles.list}
-          numColumns={2} />
+        <View>
+        <TextInput
+            style={styles.searchTextField}
+          />
+        </View>
+        <ScrollView>
+          <FlatList
+            data={this.state.pokemonList}
+            keyExtractor={item => item.name}
+            renderItem={this.renderPokemons}
+            contentContainerStyle={styles.list}
+            numColumns={2} />
+          <FlatList
+            data={this.state.pokemonList}
+            keyExtractor={item => item.name}
+            renderItem={this.renderPokemons}
+            contentContainerStyle={styles.list}
+            numColumns={2} />
+        </ScrollView>
       </View>
     );
   }
@@ -77,7 +95,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F4F4',
+    paddingTop: 20,
+    paddingBottom: 20
   }, 
+  searchTextField: {
+    height: 50,
+    backgroundColor: 'rgba(0,0,0,.1)',
+    marginLeft: 10,
+    marginRight: 10
+  },
   list: {
     justifyContent: 'center',
     flexDirection: 'column',
